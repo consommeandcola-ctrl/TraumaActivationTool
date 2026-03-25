@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 作成: 2026-03-25 | 更新: 2026-03-25 | Trauma Team Notifier v1.5 -->
+<!-- 作成: 2026-03-25 | 更新: 2026-03-25 | v1.5 | LIFF ID 設定 | .preview-label 統合、selectPreset 削除、TTA 種別を button+ARIA、toggleCheck 重複防止 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -173,6 +173,18 @@
     border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.15s;
+  }
+  button.check-item {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .check-item:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 2px;
   }
   .check-item.checked {
     border-color: var(--red);
@@ -368,15 +380,8 @@
     min-height: 60px;
   }
   .preview-label {
-    font-size: 11px;
-    color: var(--text-sub);
-    margin-top: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .preview-label {
     font-size: 10px;
+    font-weight: 600;
     color: var(--text-sub);
     margin-top: 12px;
     letter-spacing: 0.06em;
@@ -445,27 +450,27 @@
     </div>
 
     <div class="field-label">種別（複数選択可）</div>
-    <div class="check-group">
-      <div class="check-item" onclick="toggleCheck(this, 'a')">
-        <div class="checkbox">✓</div>
+    <div class="check-group" role="group" aria-label="TTA 種別（複数選択可）">
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'a')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">a｜頸部・体幹部外傷</span>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this, 'b')">
-        <div class="checkbox">✓</div>
+      </button>
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'b')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">b｜頭部外傷</span>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this, 'c')">
-        <div class="checkbox">✓</div>
+      </button>
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'c')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">c｜四肢外傷</span>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this, 'd')">
-        <div class="checkbox">✓</div>
+      </button>
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'd')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">d｜ショック</span>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this, 'e')">
-        <div class="checkbox">✓</div>
+      </button>
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'e')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">e｜CPA</span>
-      </div>
+      </button>
     </div>
 
     <div class="preview-label">送信プレビュー</div>
@@ -572,7 +577,7 @@
 // ─────────────────────────────────────────
 //  LIFF ID をここに入力
 // ─────────────────────────────────────────
-const LIFF_ID = 'YOUR_LIFF_ID_HERE';
+const LIFF_ID = '2009593275-TrnWmOVw';
 
 // ─── 状態管理 ───
 const state = {
@@ -675,21 +680,12 @@ function toggleCard(id) {
   }
 }
 
-// ─── プリセット選択 ───
-function selectPreset(key, btn, value) {
-  const groupId = key + '-presets';
-  document.querySelectorAll(`#${groupId} .preset-btn`).forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  state[key] = value;
-  const type = key.startsWith('emrg') ? 'emrg' : key.startsWith('elec') ? 'elec' : 'tta';
-  updatePreview(type);
-}
-
 // ─── チェックボックス ───
 function toggleCheck(el, val) {
-  el.classList.toggle('checked');
-  if (el.classList.contains('checked')) {
-    state.ttaChecked.push(val);
+  const on = el.classList.toggle('checked');
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (on) {
+    if (!state.ttaChecked.includes(val)) state.ttaChecked.push(val);
   } else {
     state.ttaChecked = state.ttaChecked.filter(v => v !== val);
   }
