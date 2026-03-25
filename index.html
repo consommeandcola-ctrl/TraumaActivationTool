@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<!-- 作成: 2026-03-25 | 更新: 2026-03-25 | Trauma Team Notifier v1.5 -->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Trauma Notify v1.5</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eef1fa;
+    --surface: #ffffff;
+    --border: #c8d3ec;
+    --red: #d01f2f;
+    --red-dim: #fde8ea;
+    --orange: #e06510;
+    --orange-dim: #fff0e6;
+    --blue: #1a4fd6;
+    --blue-dim: #e8f0ff;
+    --text: #0f1628;
+    --text-sub: #4a5878;
+    --success: #15803d;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 24px);
+    padding-top: max(env(safe-area-inset-top), 16px);
+    overflow-x: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 20px;
+  }
+  header .icon {
+    width: 36px; height: 36px;
+    background: var(--red);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 16px rgba(255,59,59,0.4);
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+  header p { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+  /* ─── カード ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card.open { border-color: var(--accent-color); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-header .badge {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .card-tta .badge { background: #fde8ea; }
+  .card-emrg .badge { background: #fff0e6; }
+  .card-elec .badge { background: #e8f0ff; }
+
+  .card-header .label { flex: 1; }
+  .card-header .label h2 { font-size: 16px; font-weight: 700; }
+  .card-header .label span { font-size: 12px; color: var(--text-sub); }
+  .card-header .chevron {
+    font-size: 12px; color: var(--text-sub);
+    transition: transform 0.25s;
+  }
+  .card.open .chevron { transform: rotate(180deg); }
+
+  .card-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .card.open .card-body { display: block; }
+
+  /* ─── フォーム要素 ─── */
+  .field-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+
+  /* プリセットボタン */
+  .preset-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .preset-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .preset-btn.selected {
+    color: #fff;
+    border-color: transparent;
+  }
+  .tta-accent .preset-btn.selected { background: var(--red); }
+  .emrg-accent .preset-btn.selected { background: var(--orange); color: #fff; border-color: transparent; }
+  .elec-accent .preset-btn.selected { background: var(--blue); color: #fff; border-color: transparent; }
+
+  /* 術式マルチセレクト */
+  .op-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+  .op-btn {
+    padding: 7px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .emrg-accent .op-btn.selected { background: var(--orange); color: #fff; border-color: transparent; }
+  .elec-accent .op-btn.selected { background: var(--blue); color: #fff; border-color: transparent; }
+
+  /* チェックボックス */
+  .check-group { display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .check-item.checked {
+    border-color: var(--red);
+    background: #fde8ea;
+  }
+  .check-item .checkbox {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .check-item.checked .checkbox {
+    background: var(--red);
+    border-color: var(--red);
+  }
+  .check-item .check-label { font-size: 15px; font-weight: 500; color: var(--text); }
+
+  /* テキスト入力 */
+  .text-input {
+    width: 100%;
+    background: #f8faff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .text-input:focus { border-color: var(--text-sub); }
+
+  /* ダイヤルピッカー */
+  .dial-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .dial-container {
+    position: relative;
+    width: 100px;
+    height: 120px;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #f8faff;
+    flex-shrink: 0;
+  }
+  .dial-container::before,
+  .dial-container::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 36px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .dial-container::before {
+    top: 0;
+    background: linear-gradient(to bottom, #f8faff, transparent);
+  }
+  .dial-container::after {
+    bottom: 0;
+    background: linear-gradient(to top, #f8faff, transparent);
+  }
+  .dial-selector {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 40px;
+    transform: translateY(-50%);
+    border-top: 2px solid var(--red);
+    border-bottom: 2px solid var(--red);
+    background: rgba(232,41,58,0.06);
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 4px;
+  }
+  .dial-list {
+    overflow-y: scroll;
+    height: 120px;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 40px 0;
+  }
+  .dial-list::-webkit-scrollbar { display: none; }
+  .dial-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-sub);
+    scroll-snap-align: center;
+    cursor: pointer;
+    transition: color 0.1s;
+    font-variant-numeric: tabular-nums;
+  }
+  .dial-item.active { color: var(--red); }
+  .dial-unit {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-sub);
+  }
+  .dial-arrived-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .dial-arrived-btn.selected {
+    background: var(--red);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* 病名マルチセレクト */
+  .disease-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+  .disease-btn {
+    padding: 7px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .emrg-accent .disease-btn.selected {
+    background: var(--orange);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* 日時 */
+  .datetime-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* 送信ボタン */
+  .send-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.03em;
+  }
+  .send-btn:active { opacity: 0.8; transform: scale(0.98); }
+  .tta-btn { background: var(--red); color: #fff; box-shadow: 0 4px 16px rgba(255,59,59,0.35); }
+  .emrg-btn { background: var(--orange); color: #fff; box-shadow: 0 4px 16px rgba(255,140,0,0.35); }
+  .elec-btn { background: var(--blue); color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
+
+  /* プレビュー */
+  .preview-box {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8faff;
+    border-radius: 10px;
+    border: 1px dashed var(--border);
+    font-size: 13px;
+    color: var(--text);
+    white-space: pre-wrap;
+    line-height: 1.8;
+    min-height: 60px;
+  }
+  .preview-label {
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-top: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .preview-label {
+    font-size: 10px;
+    color: var(--text-sub);
+    margin-top: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* トースト */
+  #toast {
+    position: fixed;
+    bottom: max(env(safe-area-inset-bottom), 24px);
+    left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--success);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ステータス */
+  #status-bar {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    padding: 8px 0 4px;
+  }
+  #status-bar.error { color: #ff6b6b; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚨</div>
+  <div>
+    <h1>Trauma Notify</h1>
+    <p>緊急周知システム</p>
+  </div>
+</header>
+
+<div id="status-bar">LIFF 初期化中...</div>
+
+<!-- ① TTA -->
+<div class="card card-tta" id="card-tta" style="--accent-color: var(--red)">
+  <div class="card-header" onclick="toggleCard('tta')">
+    <div class="badge">🔴</div>
+    <div class="label">
+      <h2>Trauma Team Activation</h2>
+      <span>TTA 発動通知</span>
+    </div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="card-body tta-accent">
+    <div class="field-label">ETA（分）</div>
+    <div class="dial-wrapper">
+      <div class="dial-container">
+        <div class="dial-selector"></div>
+        <div class="dial-list" id="eta-dial"></div>
+      </div>
+      <span class="dial-unit">分</span>
+      <button class="dial-arrived-btn" id="eta-arrived-btn" onclick="toggleArrived()">到着済み</button>
+    </div>
+
+    <div class="field-label">種別（複数選択可）</div>
+    <div class="check-group">
+      <div class="check-item" onclick="toggleCheck(this, 'a')">
+        <div class="checkbox">✓</div>
+        <span class="check-label">a｜頸部・体幹部外傷</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this, 'b')">
+        <div class="checkbox">✓</div>
+        <span class="check-label">b｜頭部外傷</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this, 'c')">
+        <div class="checkbox">✓</div>
+        <span class="check-label">c｜四肢外傷</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this, 'd')">
+        <div class="checkbox">✓</div>
+        <span class="check-label">d｜ショック</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this, 'e')">
+        <div class="checkbox">✓</div>
+        <span class="check-label">e｜CPA</span>
+      </div>
+    </div>
+
+    <div class="preview-label">送信プレビュー</div>
+    <div class="preview-box" id="preview-tta">─</div>
+
+    <button class="send-btn tta-btn" onclick="sendMessage('tta')">
+      🔴 TTA を送信
+    </button>
+  </div>
+</div>
+
+<!-- ② 緊急手術 -->
+<div class="card card-emrg" id="card-emrg" style="--accent-color: var(--orange)">
+  <div class="card-header" onclick="toggleCard('emrg')">
+    <div class="badge">🔶</div>
+    <div class="label">
+      <h2>緊急手術</h2>
+      <span>Emergency Surgery</span>
+    </div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="card-body emrg-accent">
+    <div class="field-label">病名（複数選択可）</div>
+    <div class="disease-group" id="emrg-disease-presets">
+      <button class="disease-btn" onclick="toggleDisease(this, '腹腔内出血')">腹腔内出血</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '肝損傷')">肝損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '脾損傷')">脾損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '腎損傷')">腎損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '消化管穿孔')">消化管穿孔</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '腸間膜損傷')">腸間膜損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '心損傷')">心損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '血気胸')">血気胸</button>
+      <button class="disease-btn" onclick="toggleDisease(this, 'ASDH')">ASDH</button>
+      <button class="disease-btn" onclick="toggleDisease(this, 'AEDH')">AEDH</button>
+      <button class="disease-btn" onclick="toggleDisease(this, 'その他')">その他</button>
+    </div>
+    <input class="text-input" id="emrg-disease-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('emrg')">
+
+    <div class="field-label">術式（複数選択可）</div>
+    <div class="op-group" id="emrg-op-group">
+      <button class="op-btn" onclick="toggleOp('emrg', this, '試験開腹術')">試験開腹術</button>
+      <button class="op-btn" onclick="toggleOp('emrg', this, '試験開胸術')">試験開胸術</button>
+      <button class="op-btn" onclick="toggleOp('emrg', this, '開頭血腫除去術')">開頭血腫除去術</button>
+      <button class="op-btn" onclick="toggleOp('emrg', this, '創外固定術')">創外固定術</button>
+      <button class="op-btn" onclick="toggleOp('emrg', this, 'その他')">その他</button>
+    </div>
+    <input class="text-input" id="emrg-op-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('emrg')">
+
+    <div class="preview-label">送信プレビュー</div>
+    <div class="preview-box" id="preview-emrg">─</div>
+
+    <button class="send-btn emrg-btn" onclick="sendMessage('emrg')">
+      🔶 緊急手術を送信
+    </button>
+  </div>
+</div>
+
+<!-- ③ 待機手術 -->
+<div class="card card-elec" id="card-elec" style="--accent-color: var(--blue)">
+  <div class="card-header" onclick="toggleCard('elec')">
+    <div class="badge">🔷</div>
+    <div class="label">
+      <h2>待機手術</h2>
+      <span>Elective Surgery</span>
+    </div>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="card-body elec-accent">
+    <div class="field-label">日時</div>
+    <div class="datetime-row">
+      <input class="text-input" id="elec-date" type="date" oninput="updatePreview('elec')">
+      <input class="text-input" id="elec-time" type="time" oninput="updatePreview('elec')">
+    </div>
+
+    <div class="field-label">病名</div>
+    <input class="text-input" id="elec-disease" type="text" placeholder="例：大腸癌" oninput="updatePreview('elec')">
+
+    <div class="field-label">術式（複数選択可）</div>
+    <div class="op-group" id="elec-op-group">
+      <button class="op-btn" onclick="toggleOp('elec', this, '待機的閉腹')">待機的閉腹</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '待機的閉胸')">待機的閉胸</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '小腸切除吻合術')">小腸切除吻合術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '結腸切除術')">結腸切除術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '人工肛門造設術')">人工肛門造設術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '肝切除術')">肝切除術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '脾臓摘出術')">脾臓摘出術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, '腎摘出術')">腎摘出術</button>
+      <button class="op-btn" onclick="toggleOp('elec', this, 'その他')">その他</button>
+    </div>
+    <input class="text-input" id="elec-op-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('elec')">
+
+    <div class="preview-label">送信プレビュー</div>
+    <div class="preview-box" id="preview-elec">─</div>
+
+    <button class="send-btn elec-btn" onclick="sendMessage('elec')">
+      🔷 待機手術を送信
+    </button>
+  </div>
+</div>
+
+<div id="toast">✅ LINEに送信しました</div>
+
+<script>
+// ─────────────────────────────────────────
+//  LIFF ID をここに入力
+// ─────────────────────────────────────────
+const LIFF_ID = 'YOUR_LIFF_ID_HERE';
+
+// ─── 状態管理 ───
+const state = {
+  eta: '5',
+  etaArrived: false,
+  ttaChecked: [],
+  emrgDiseases: [],
+  emrgOps: [],
+  elecOps: [],
+};
+
+// ─── ダイヤルピッカー初期化 ───
+(function initDial() {
+  const list = document.getElementById('eta-dial');
+  for (let i = 1; i <= 60; i++) {
+    const item = document.createElement('div');
+    item.className = 'dial-item';
+    item.textContent = i;
+    item.dataset.val = i;
+    list.appendChild(item);
+  }
+  list.scrollTop = (5 - 1) * 40;
+  updateDialActive();
+
+  list.addEventListener('scroll', () => {
+    clearTimeout(list._st);
+    list._st = setTimeout(() => {
+      const idx = Math.round(list.scrollTop / 40);
+      list.scrollTop = idx * 40;
+      state.eta = String(idx + 1);
+      state.etaArrived = false;
+      document.getElementById('eta-arrived-btn').classList.remove('selected');
+      updateDialActive();
+      updatePreview('tta');
+    }, 80);
+  });
+
+  function updateDialActive() {
+    const active = Math.round(list.scrollTop / 40) + 1;
+    list.querySelectorAll('.dial-item').forEach(el => {
+      el.classList.toggle('active', Number(el.dataset.val) === active);
+    });
+  }
+})();
+
+// ─── 到着済みトグル ───
+function toggleArrived() {
+  state.etaArrived = !state.etaArrived;
+  const btn = document.getElementById('eta-arrived-btn');
+  btn.classList.toggle('selected', state.etaArrived);
+  updatePreview('tta');
+}
+
+// ─── 術式マルチセレクト ───
+function toggleOp(type, btn, val) {
+  btn.classList.toggle('selected');
+  const key = type === 'emrg' ? 'emrgOps' : 'elecOps';
+  if (btn.classList.contains('selected')) {
+    state[key].push(val);
+  } else {
+    state[key] = state[key].filter(v => v !== val);
+  }
+  updatePreview(type);
+}
+
+// ─── LIFF 初期化 ───
+let liffReady = false;
+(async () => {
+  const bar = document.getElementById('status-bar');
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    liffReady = true;
+    bar.textContent = `✓ ${liff.getContext()?.type ?? 'LINE'} で起動中`;
+    bar.style.color = '#22c55e';
+  } catch(e) {
+    bar.textContent = '⚠ LIFFデモモード（LINE外）';
+    bar.className = 'error';
+    liffReady = false;
+  }
+})();
+
+// ─── 病名マルチセレクト ───
+function toggleDisease(btn, val) {
+  btn.classList.toggle('selected');
+  if (btn.classList.contains('selected')) {
+    state.emrgDiseases.push(val);
+  } else {
+    state.emrgDiseases = state.emrgDiseases.filter(v => v !== val);
+  }
+  updatePreview('emrg');
+}
+function toggleCard(id) {
+  const card = document.getElementById('card-' + id);
+  const isOpen = card.classList.contains('open');
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('open'));
+  if (!isOpen) {
+    card.classList.add('open');
+    updatePreview(id);
+  }
+}
+
+// ─── プリセット選択 ───
+function selectPreset(key, btn, value) {
+  const groupId = key + '-presets';
+  document.querySelectorAll(`#${groupId} .preset-btn`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state[key] = value;
+  const type = key.startsWith('emrg') ? 'emrg' : key.startsWith('elec') ? 'elec' : 'tta';
+  updatePreview(type);
+}
+
+// ─── チェックボックス ───
+function toggleCheck(el, val) {
+  el.classList.toggle('checked');
+  if (el.classList.contains('checked')) {
+    state.ttaChecked.push(val);
+  } else {
+    state.ttaChecked = state.ttaChecked.filter(v => v !== val);
+  }
+  updatePreview('tta');
+}
+
+// ─── ラベルマップ ───
+const ttaLabels = {
+  a: '頸部・体幹部外傷',
+  b: '頭部外傷',
+  c: '四肢外傷',
+  d: 'ショック',
+  e: 'CPA'
+};
+
+// ─── プレビュー生成 ───
+function buildMessage(type) {
+  if (type === 'tta') {
+    const eta = state.etaArrived ? '到着済み' : (state.eta ? state.eta + '分' : '（未選択）');
+    const items = state.ttaChecked.length
+      ? state.ttaChecked.map(v => `✅ ${v}｜${ttaLabels[v]}`).join('\n')
+      : '（未選択）';
+    return `🔴 Trauma Team Activation\nETA：${eta}\n──────────────\n${items}`;
+  }
+  if (type === 'emrg') {
+    const free = document.getElementById('emrg-disease-free').value;
+    const diseases = [...state.emrgDiseases, ...(free ? [free] : [])];
+    const diseaseStr = diseases.length ? diseases.join('・') : '（未選択）';
+    const opFree = document.getElementById('emrg-op-free').value;
+    const ops = [...state.emrgOps, ...(opFree ? [opFree] : [])];
+    const opStr = ops.length ? ops.join('・') : '（未選択）';
+    return `🔶 緊急手術（Emergency Surgery）\n──────────────\n病名：${diseaseStr}\n術式：${opStr}`;
+  }
+  if (type === 'elec') {
+    const date = document.getElementById('elec-date').value || '（未入力）';
+    const time = document.getElementById('elec-time').value || '';
+    const datetime = date + (time ? ' ' + time : '');
+    const disease = document.getElementById('elec-disease').value || '（未入力）';
+    const opFree = document.getElementById('elec-op-free').value;
+    const ops = [...state.elecOps, ...(opFree ? [opFree] : [])];
+    const opStr = ops.length ? ops.join('・') : '（未選択）';
+    return `🔷 待機手術（Elective Surgery）\n──────────────\n日時：${datetime}\n病名：${disease}\n術式：${opStr}`;
+  }
+}
+
+function updatePreview(type) {
+  const el = document.getElementById('preview-' + type);
+  if (el) el.textContent = buildMessage(type);
+}
+
+// ─── 送信 ───
+async function sendMessage(type) {
+  const text = buildMessage(type);
+  if (liffReady) {
+    try {
+      await liff.sendMessages([{ type: 'text', text }]);
+      showToast('✅ LINEに送信しました');
+    } catch(e) {
+      showToast('❌ 送信失敗：' + e.message);
+    }
+  } else {
+    // デモ：コピーして確認
+    navigator.clipboard?.writeText(text).catch(() => {});
+    showToast('📋 デモ：クリップボードにコピー');
+  }
+}
+
+// ─── トースト ───
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
