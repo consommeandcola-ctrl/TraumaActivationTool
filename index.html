@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- 作成: 2026-03-25 | 更新: 2026-03-25 | v1.5 | LIFF ID 設定 | .preview-label 統合、selectPreset 削除、TTA 種別を button+ARIA、toggleCheck 重複防止 -->
+<!-- 作成: 2026-03-25 | 更新: 2026-04-03 | v1.6 | 術式 state 同期・type=button・autocomplete off 等 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Trauma Notify v1.5</title>
+<title>Trauma Notify v1.6</title>
 <meta property="og:title" content="🚨 Trauma Notify">
 <meta property="og:description" content="外傷チーム緊急周知システム｜TTA・緊急手術・待機手術">
 <meta property="og:type" content="website">
@@ -344,6 +344,9 @@
     border-color: transparent;
   }
 
+  .sharp-part-wrap { margin-top: 4px; }
+  .sharp-part-wrap[hidden] { display: none !important; }
+
   /* 日時 */
   .datetime-row {
     display: grid;
@@ -427,7 +430,7 @@
   <div class="icon">🚨</div>
   <div>
     <h1>Trauma Notify</h1>
-    <p>緊急周知システム</p>
+    <p>緊急周知システム <span style="color:var(--text-sub);font-weight:600">v1.6</span></p>
   </div>
 </header>
 
@@ -476,6 +479,20 @@
         <span class="checkbox" aria-hidden="true">✓</span>
         <span class="check-label">e｜CPA</span>
       </button>
+      <button type="button" class="check-item" onclick="toggleCheck(this, 'f')" aria-pressed="false">
+        <span class="checkbox" aria-hidden="true">✓</span>
+        <span class="check-label">f｜鋭的損傷</span>
+      </button>
+    </div>
+
+    <div id="tta-sharp-wrap" class="sharp-part-wrap" hidden>
+      <div class="field-label">鋭的損傷の部位（1つ選択）</div>
+      <div class="preset-group" id="tta-sharp-parts" role="group" aria-label="鋭的損傷の部位">
+        <button type="button" class="preset-btn" onclick="selectSharpPart(this, '頸部')">頸部</button>
+        <button type="button" class="preset-btn" onclick="selectSharpPart(this, '胸部')">胸部</button>
+        <button type="button" class="preset-btn" onclick="selectSharpPart(this, '腹部')">腹部</button>
+        <button type="button" class="preset-btn" onclick="selectSharpPart(this, '四肢')">四肢</button>
+      </div>
     </div>
 
     <div class="preview-label">送信プレビュー</div>
@@ -506,23 +523,26 @@
       <button class="disease-btn" onclick="toggleDisease(this, '腎損傷')">腎損傷</button>
       <button class="disease-btn" onclick="toggleDisease(this, '消化管穿孔')">消化管穿孔</button>
       <button class="disease-btn" onclick="toggleDisease(this, '腸間膜損傷')">腸間膜損傷</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '腹部刺創')">腹部刺創</button>
       <button class="disease-btn" onclick="toggleDisease(this, '心損傷')">心損傷</button>
       <button class="disease-btn" onclick="toggleDisease(this, '血気胸')">血気胸</button>
+      <button class="disease-btn" onclick="toggleDisease(this, '胸部刺創')">胸部刺創</button>
       <button class="disease-btn" onclick="toggleDisease(this, 'ASDH')">ASDH</button>
       <button class="disease-btn" onclick="toggleDisease(this, 'AEDH')">AEDH</button>
       <button class="disease-btn" onclick="toggleDisease(this, 'その他')">その他</button>
     </div>
-    <input class="text-input" id="emrg-disease-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('emrg')">
+    <input class="text-input" id="emrg-disease-free" type="text" placeholder="自由入力（任意）" autocomplete="off" oninput="updatePreview('emrg')">
 
     <div class="field-label">術式（複数選択可）</div>
     <div class="op-group" id="emrg-op-group">
-      <button class="op-btn" onclick="toggleOp('emrg', this, '試験開腹術')">試験開腹術</button>
-      <button class="op-btn" onclick="toggleOp('emrg', this, '試験開胸術')">試験開胸術</button>
-      <button class="op-btn" onclick="toggleOp('emrg', this, '開頭血腫除去術')">開頭血腫除去術</button>
-      <button class="op-btn" onclick="toggleOp('emrg', this, '創外固定術')">創外固定術</button>
-      <button class="op-btn" onclick="toggleOp('emrg', this, 'その他')">その他</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, '試験開腹術')">試験開腹術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, 'Local Wound Exploration')">Local Wound Exploration</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, '試験開胸術')">試験開胸術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, '開頭血腫除去術')">開頭血腫除去術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, '創外固定術')">創外固定術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('emrg', this, 'その他')">その他</button>
     </div>
-    <input class="text-input" id="emrg-op-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('emrg')">
+    <input class="text-input" id="emrg-op-free" type="text" placeholder="自由入力（任意）" autocomplete="off" oninput="updatePreview('emrg')">
 
     <div class="preview-label">送信プレビュー</div>
     <div class="preview-box" id="preview-emrg">─</div>
@@ -551,21 +571,21 @@
     </div>
 
     <div class="field-label">病名</div>
-    <input class="text-input" id="elec-disease" type="text" placeholder="例：大腸癌" oninput="updatePreview('elec')">
+    <input class="text-input" id="elec-disease" type="text" placeholder="例：大腸癌" autocomplete="off" oninput="updatePreview('elec')">
 
     <div class="field-label">術式（複数選択可）</div>
     <div class="op-group" id="elec-op-group">
-      <button class="op-btn" onclick="toggleOp('elec', this, '待機的閉腹')">待機的閉腹</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '待機的閉胸')">待機的閉胸</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '小腸切除吻合術')">小腸切除吻合術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '結腸切除術')">結腸切除術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '人工肛門造設術')">人工肛門造設術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '肝切除術')">肝切除術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '脾臓摘出術')">脾臓摘出術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, '腎摘出術')">腎摘出術</button>
-      <button class="op-btn" onclick="toggleOp('elec', this, 'その他')">その他</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '待機的閉腹')">待機的閉腹</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '待機的閉胸')">待機的閉胸</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '小腸切除吻合術')">小腸切除吻合術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '結腸切除術')">結腸切除術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '人工肛門造設術')">人工肛門造設術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '肝切除術')">肝切除術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '脾臓摘出術')">脾臓摘出術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, '腎摘出術')">腎摘出術</button>
+      <button type="button" class="op-btn" onclick="toggleOp('elec', this, 'その他')">その他</button>
     </div>
-    <input class="text-input" id="elec-op-free" type="text" placeholder="自由入力（任意）" oninput="updatePreview('elec')">
+    <input class="text-input" id="elec-op-free" type="text" placeholder="自由入力（任意）" autocomplete="off" oninput="updatePreview('elec')">
 
     <div class="preview-label">送信プレビュー</div>
     <div class="preview-box" id="preview-elec">─</div>
@@ -589,6 +609,7 @@ const state = {
   eta: '5',
   etaArrived: false,
   ttaChecked: [],
+  ttaSharpPart: null,
   emrgDiseases: [],
   emrgOps: [],
   elecOps: [],
@@ -636,16 +657,28 @@ function toggleArrived() {
   updatePreview('tta');
 }
 
-// ─── 術式マルチセレクト ───
+// ─── 術式マルチセレクト（state を正としてから DOM を合わせる）───
 function toggleOp(type, btn, val) {
-  btn.classList.toggle('selected');
   const key = type === 'emrg' ? 'emrgOps' : 'elecOps';
-  if (btn.classList.contains('selected')) {
-    state[key].push(val);
-  } else {
+  if (state[key].includes(val)) {
     state[key] = state[key].filter(v => v !== val);
+  } else {
+    if (!state[key].includes(val)) state[key].push(val);
   }
+  btn.classList.toggle('selected', state[key].includes(val));
   updatePreview(type);
+}
+
+function syncOpUiFromState() {
+  [['emrg-op-group', 'emrgOps'], ['elec-op-group', 'elecOps']].forEach(([gid, skey]) => {
+    document.querySelectorAll(`#${gid} .op-btn`).forEach(btn => {
+      const attr = btn.getAttribute('onclick') || '';
+      const m = attr.match(/toggleOp\('(?:emrg|elec)', this, '([^']*)'\)/);
+      if (!m) return;
+      const val = m[1];
+      btn.classList.toggle('selected', state[skey].includes(val));
+    });
+  });
 }
 
 // ─── LIFF 初期化 ───
@@ -669,7 +702,7 @@ let liffReady = false;
 function toggleDisease(btn, val) {
   btn.classList.toggle('selected');
   if (btn.classList.contains('selected')) {
-    state.emrgDiseases.push(val);
+    if (!state.emrgDiseases.includes(val)) state.emrgDiseases.push(val);
   } else {
     state.emrgDiseases = state.emrgDiseases.filter(v => v !== val);
   }
@@ -689,11 +722,25 @@ function toggleCard(id) {
 function toggleCheck(el, val) {
   const on = el.classList.toggle('checked');
   el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const wrap = document.getElementById('tta-sharp-wrap');
   if (on) {
     if (!state.ttaChecked.includes(val)) state.ttaChecked.push(val);
+    if (val === 'f' && wrap) wrap.hidden = false;
   } else {
     state.ttaChecked = state.ttaChecked.filter(v => v !== val);
+    if (val === 'f') {
+      state.ttaSharpPart = null;
+      if (wrap) wrap.hidden = true;
+      document.querySelectorAll('#tta-sharp-parts .preset-btn').forEach(b => b.classList.remove('selected'));
+    }
   }
+  updatePreview('tta');
+}
+
+function selectSharpPart(btn, part) {
+  document.querySelectorAll('#tta-sharp-parts .preset-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.ttaSharpPart = part;
   updatePreview('tta');
 }
 
@@ -706,12 +753,20 @@ const ttaLabels = {
   e: 'CPA'
 };
 
+function ttaLineForKey(v) {
+  if (v === 'f') {
+    const p = state.ttaSharpPart || '（未選択）';
+    return `✅ f｜鋭的損傷（${p}）`;
+  }
+  return `✅ ${v}｜${ttaLabels[v]}`;
+}
+
 // ─── プレビュー生成 ───
 function buildMessage(type) {
   if (type === 'tta') {
     const eta = state.etaArrived ? '到着済み' : (state.eta ? state.eta + '分' : '（未選択）');
     const items = state.ttaChecked.length
-      ? state.ttaChecked.map(v => `✅ ${v}｜${ttaLabels[v]}`).join('\n')
+      ? state.ttaChecked.map(ttaLineForKey).join('\n')
       : '（未選択）';
     return `🔴 Trauma Team Activation\nETA：${eta}\n──────────────\n${items}`;
   }
@@ -743,6 +798,10 @@ function updatePreview(type) {
 
 // ─── 送信 ───
 async function sendMessage(type) {
+  if (type === 'tta' && state.ttaChecked.includes('f') && !state.ttaSharpPart) {
+    showToast('⚠ 鋭的損傷（f）の部位を1つ選んでください');
+    return;
+  }
   const text = buildMessage(type);
   if (liffReady) {
     try {
@@ -765,6 +824,9 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+syncOpUiFromState();
+window.addEventListener('pageshow', syncOpUiFromState);
 </script>
 </body>
 </html>
